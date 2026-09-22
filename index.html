@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ボイス＆ピアノ 作曲アプリ (音符・休符対応版)</title>
+  <title>ボイス＆ピアノ 作曲アプリ (小節線・本格休符対応版)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap');
 
@@ -47,7 +47,7 @@
     }
 
     .title {
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: #00ffcc;
       text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
     }
@@ -111,7 +111,6 @@
       font-size: 0.75rem;
     }
 
-    /* 音符選択ツールバー */
     .note-selector {
       display: flex;
       align-items: center;
@@ -138,7 +137,12 @@
       border-color: #fff;
     }
 
-    /* 五線譜エリア */
+    .btn-rest {
+      background: #ff5500;
+      border-color: #ff8844;
+      color: #fff;
+    }
+
     #score-area {
       flex: 1;
       background: #181926;
@@ -155,7 +159,6 @@
       background: #1a1b2a;
     }
 
-    /* 下部：キーボードエリア（画面下部と被らないように持ち上げ調整） */
     #keyboard-area {
       height: 190px;
       background: #0f1017;
@@ -163,7 +166,7 @@
       position: relative;
       display: flex;
       justify-content: center;
-      padding: 8px 10px 30px; /* 下部に30pxの余白を追加 */
+      padding: 8px 10px 30px;
     }
 
     .piano-container {
@@ -209,7 +212,6 @@
       transform: translateY(2px);
     }
 
-    /* インジケーター＆マイクメーター */
     #status-box {
       position: absolute;
       top: 10px;
@@ -253,14 +255,15 @@
       <div class="title">🎵 歌＆ピアノ作曲</div>
       
       <div class="controls">
-        <!-- 音符種類選択（ピアノ用） -->
         <div class="note-selector">
           <span style="font-size:0.7rem; color:#aaa;">音符:</span>
-          <button class="note-opt" data-type="1">𝄽/𝄻 (全)</button>
-          <button class="note-opt" data-type="2">𝄿 (2分)</button>
-          <button class="note-opt selected" data-type="4">♩ (4分)</button>
-          <button class="note-opt" data-type="8">♪ (8分)</button>
+          <button class="note-opt" data-type="1">全</button>
+          <button class="note-opt" data-type="2">2分</button>
+          <button class="note-opt selected" data-type="4">4分</button>
+          <button class="note-opt" data-type="8">8分</button>
         </div>
+
+        <button class="btn btn-rest" id="btn-add-rest">𝄽 休符追加</button>
 
         <div class="metro-group">
           <label><input type="checkbox" id="metro-toggle"> ⏱ メトロノーム</label>
@@ -280,17 +283,21 @@
         <div id="mic-meter-bg"><div id="mic-meter-bar"></div></div>
       </div>
 
-      <svg id="sheet" viewBox="0 0 1200 200" preserveAspectRatio="xMinYMid meet">
-        <line x1="0" y1="60" x2="1200" y2="60" stroke="#555770" stroke-width="2"/>
-        <line x1="0" y1="80" x2="1200" y2="80" stroke="#555770" stroke-width="2"/>
-        <line x1="0" y1="100" x2="1200" y2="100" stroke="#555770" stroke-width="2"/>
-        <line x1="0" y1="120" x2="1200" y2="120" stroke="#555770" stroke-width="2"/>
-        <line x1="0" y1="140" x2="1200" y2="140" stroke="#555770" stroke-width="2"/>
+      <svg id="sheet" viewBox="0 0 1600 200" preserveAspectRatio="xMinYMid meet">
+        <!-- 五線 -->
+        <line x1="0" y1="60" x2="1600" y2="60" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="80" x2="1600" y2="80" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="100" x2="1600" y2="100" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="120" x2="1600" y2="120" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="140" x2="1600" y2="140" stroke="#555770" stroke-width="2"/>
         
+        <!-- ト音記号 ＆ 拍子記号(4/4) -->
         <text x="15" y="130" font-size="70" fill="#00ffcc" font-family="sans-serif">𝄞</text>
+        <text x="65" y="95" font-size="30" fill="#00ffcc" font-family="sans-serif">4</text>
+        <text x="65" y="135" font-size="30" fill="#00ffcc" font-family="sans-serif">4</text>
         
         <g id="notes-layer"></g>
-        <line id="play-cursor" x1="70" y1="30" x2="70" y2="170" stroke="#ff5500" stroke-width="3" visibility="hidden"/>
+        <line id="play-cursor" x1="110" y1="30" x2="110" y2="170" stroke="#ff5500" stroke-width="3" visibility="hidden"/>
       </svg>
     </div>
 
@@ -301,7 +308,7 @@
 
   <script>
     let audioCtx = null;
-    let selectedNoteType = 4; // デフォルト四分音符 (4 = 4分, 2 = 2分, 1 = 全, 8 = 8分)
+    let selectedNoteType = 4; // 1, 2, 4, 8
 
     function initAudio() {
       if (!audioCtx) {
@@ -315,16 +322,14 @@
     window.addEventListener('touchstart', initAudio, { once: true });
     window.addEventListener('click', initAudio, { once: true });
 
-    // 音符選択ボタンイベント
     document.querySelectorAll('.note-opt').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         document.querySelectorAll('.note-opt').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         selectedNoteType = parseInt(btn.dataset.type);
       });
     });
 
-    // 音階データ
     const NOTES = [
       { name: 'C4', freq: 261.63, keyType: 'white', lineY: 160, isLedger: true },
       { name: 'C#4', freq: 277.18, keyType: 'black', lineY: 160 },
@@ -368,7 +373,6 @@
       osc.stop(audioCtx.currentTime + duration);
     }
 
-    // ピアノ作成
     const pianoEl = document.getElementById('piano');
     const whiteNotes = NOTES.filter(n => n.keyType === 'white');
 
@@ -418,6 +422,10 @@
       pianoEl.appendChild(bKey);
     });
 
+    document.getElementById('btn-add-rest').addEventListener('click', () => {
+      addNoteToSheet({ name: 'REST', lineY: 100 }, selectedNoteType, true);
+    });
+
     function getDurationFromType(type) {
       const bpm = parseInt(document.getElementById('bpm-slider').value);
       const beatSec = 60 / bpm;
@@ -428,91 +436,153 @@
       return beatSec;
     }
 
-    // 楽譜データ
     let recordedNotes = [];
     const notesLayer = document.getElementById('notes-layer');
-    let currentX = 80;
 
     function addNoteToSheet(note, type = 4, isRest = false) {
-      if (currentX > 1150) return;
-
-      const noteData = { ...note, type, isRest, x: currentX };
+      const noteData = { ...note, type, isRest };
       recordedNotes.push(noteData);
-
-      // 横幅の計算 (音符の長さに応じて幅を変える)
-      let spacing = 35;
-      if (type === 1) spacing = 65;
-      else if (type === 2) spacing = 50;
-      else if (type === 8) spacing = 25;
-
-      currentX += spacing;
       renderSheet();
     }
 
     function renderSheet() {
       notesLayer.innerHTML = '';
-      recordedNotes.forEach(n => {
+      let currentX = 110;
+      let beatsInMeasure = 0; // 4/4拍子用カウント（4拍で小節線）
+
+      recordedNotes.forEach((n, idx) => {
+        // 拍数の加算 (全音符=4, 2分=2, 4分=1, 8分=0.5)
+        let beats = 4 / n.type;
+        
+        // 小節線の描画（4拍を超えたタイミングで縦線を挿入）
+        if (beatsInMeasure + beats > 4) {
+          drawBarLine(currentX + 10);
+          currentX += 30;
+          beatsInMeasure = 0;
+        }
+
+        n.x = currentX;
+
         if (n.isRest) {
-          // 休符の描画
-          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          text.setAttribute('x', n.x - 5);
-          text.setAttribute('y', 110);
-          text.setAttribute('font-size', '28');
-          text.setAttribute('fill', '#ff5500');
-          text.textContent = n.type === 8 ? '𝄾' : (n.type === 2 || n.type === 1 ? '𝄻' : '𝄽');
-          notesLayer.appendChild(text);
-          return;
-        }
-
-        // 加線 (ド用)
-        if (n.isLedger) {
-          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          line.setAttribute('x1', n.x - 10);
-          line.setAttribute('y1', n.lineY);
-          line.setAttribute('x2', n.x + 10);
-          line.setAttribute('y2', n.lineY);
-          line.setAttribute('stroke', '#fff');
-          line.setAttribute('stroke-width', '2');
-          notesLayer.appendChild(line);
-        }
-
-        // 音符の玉 (全音符・二分音符は白抜き)
-        const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-        ellipse.setAttribute('cx', n.x);
-        ellipse.setAttribute('cy', n.lineY);
-        ellipse.setAttribute('rx', '7');
-        ellipse.setAttribute('ry', '5');
-        ellipse.setAttribute('fill', (n.type === 1 || n.type === 2) ? '#1a1b2a' : '#00ffcc');
-        ellipse.setAttribute('stroke', '#00ffcc');
-        ellipse.setAttribute('stroke-width', '2');
-        ellipse.setAttribute('transform', `rotate(-20 ${n.x} ${n.lineY})`);
-        notesLayer.appendChild(ellipse);
-
-        // 符幹（棒）：全音符以外で描画
-        if (n.type !== 1) {
-          const stem = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          stem.setAttribute('x1', n.x + 6);
-          stem.setAttribute('y1', n.lineY);
-          stem.setAttribute('x2', n.x + 6);
-          stem.setAttribute('y2', n.lineY - 28);
-          stem.setAttribute('stroke', '#00ffcc');
-          stem.setAttribute('stroke-width', '2');
-          notesLayer.appendChild(stem);
-
-          // 八分音符の旗
-          if (n.type === 8) {
-            const flag = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            flag.setAttribute('d', `M ${n.x + 6} ${n.lineY - 28} Q ${n.x + 16} ${n.lineY - 18} ${n.x + 12} ${n.lineY - 10}`);
-            flag.setAttribute('stroke', '#00ffcc');
-            flag.setAttribute('stroke-width', '2.5');
-            flag.setAttribute('fill', 'none');
-            notesLayer.appendChild(flag);
+          drawRestSymbol(n.x, n.type);
+        } else {
+          // 下加線
+          if (n.isLedger) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', n.x - 10);
+            line.setAttribute('y1', n.lineY);
+            line.setAttribute('x2', n.x + 10);
+            line.setAttribute('y2', n.lineY);
+            line.setAttribute('stroke', '#fff');
+            line.setAttribute('stroke-width', '2');
+            notesLayer.appendChild(line);
           }
+
+          // 音符の玉
+          const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+          ellipse.setAttribute('cx', n.x);
+          ellipse.setAttribute('cy', n.lineY);
+          ellipse.setAttribute('rx', '7');
+          ellipse.setAttribute('ry', '5');
+          ellipse.setAttribute('fill', (n.type === 1 || n.type === 2) ? '#1a1b2a' : '#00ffcc');
+          ellipse.setAttribute('stroke', '#00ffcc');
+          ellipse.setAttribute('stroke-width', '2');
+          ellipse.setAttribute('transform', `rotate(-20 ${n.x} ${n.lineY})`);
+          notesLayer.appendChild(ellipse);
+
+          // 符幹（棒）
+          if (n.type !== 1) {
+            const stem = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            stem.setAttribute('x1', n.x + 6);
+            stem.setAttribute('y1', n.lineY);
+            stem.setAttribute('x2', n.x + 6);
+            stem.setAttribute('y2', n.lineY - 28);
+            stem.setAttribute('stroke', '#00ffcc');
+            stem.setAttribute('stroke-width', '2');
+            notesLayer.appendChild(stem);
+
+            if (n.type === 8) {
+              const flag = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+              flag.setAttribute('d', `M ${n.x + 6} ${n.lineY - 28} Q ${n.x + 16} ${n.lineY - 18} ${n.x + 12} ${n.lineY - 10}`);
+              flag.setAttribute('stroke', '#00ffcc');
+              flag.setAttribute('stroke-width', '2.5');
+              flag.setAttribute('fill', 'none');
+              notesLayer.appendChild(flag);
+            }
+          }
+        }
+
+        beatsInMeasure += beats;
+
+        if (beatsInMeasure === 4) {
+          drawBarLine(currentX + 25);
+          currentX += 45;
+          beatsInMeasure = 0;
+        } else {
+          let spacing = 35;
+          if (n.type === 1) spacing = 70;
+          else if (n.type === 2) spacing = 50;
+          else if (n.type === 8) spacing = 25;
+          currentX += spacing;
         }
       });
     }
 
-    // --- 高感度マイク解析 ＆ 音の長さ・休符自動判定 ---
+    // 小節線描画
+    function drawBarLine(x) {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x);
+      line.setAttribute('y1', 60);
+      line.setAttribute('x2', x);
+      line.setAttribute('y2', 140);
+      line.setAttribute('stroke', '#ff5500');
+      line.setAttribute('stroke-width', '2.5');
+      notesLayer.appendChild(line);
+    }
+
+    // 正確な休符SVG描画
+    function drawRestSymbol(x, type) {
+      if (type === 1) { // 全休符（第4線からぶら下がる）
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', x - 6);
+        rect.setAttribute('y', 80);
+        rect.setAttribute('width', 12);
+        rect.setAttribute('height', 6);
+        rect.setAttribute('fill', '#ff5500');
+        notesLayer.appendChild(rect);
+      } else if (type === 2) { // 二分休符（第3線の上に乗る）
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', x - 6);
+        rect.setAttribute('y', 94);
+        rect.setAttribute('width', 12);
+        rect.setAttribute('height', 6);
+        rect.setAttribute('fill', '#ff5500');
+        notesLayer.appendChild(rect);
+      } else if (type === 4) { // 四分休符
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${x-3} 75 L ${x+4} 85 L ${x-3} 95 L ${x+3} 105 Q ${x-5} 115 ${x-2} 120`);
+        path.setAttribute('stroke', '#ff5500');
+        path.setAttribute('stroke-width', '3');
+        path.setAttribute('fill', 'none');
+        notesLayer.appendChild(path);
+      } else if (type === 8) { // 八分休符
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x - 3);
+        circle.setAttribute('cy', 90);
+        circle.setAttribute('r', 3);
+        circle.setAttribute('fill', '#ff5500');
+        notesLayer.appendChild(circle);
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${x-3} 88 Q ${x+4} 90 ${x+2} 98 L ${x-4} 115`);
+        path.setAttribute('stroke', '#ff5500');
+        path.setAttribute('stroke-width', '2.5');
+        path.setAttribute('fill', 'none');
+        notesLayer.appendChild(path);
+      }
+    }
+
+    // 高精度＆スムージングマイク処理
     let isRecording = false;
     let micStream = null;
     let analyser = null;
@@ -520,8 +590,9 @@
     const pitchIndicator = document.getElementById('pitch-indicator');
     const micMeterBar = document.getElementById('mic-meter-bar');
 
-    let currentSingNote = null;
-    let singStartTime = 0;
+    let pitchHistory = [];
+    let currentStableNote = null;
+    let noteStartTime = 0;
     let silenceStartTime = Date.now();
 
     btnRec.addEventListener('click', async () => {
@@ -529,11 +600,7 @@
       if (!isRecording) {
         try {
           micStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-              autoGainControl: true,
-              noiseSuppression: false
-            }
+            audio: { echoCancellation: false, autoGainControl: true, noiseSuppression: false }
           });
 
           const source = audioCtx.createMediaStreamSource(micStream);
@@ -547,9 +614,9 @@
           pitchIndicator.textContent = '聴き取り中...';
           silenceStartTime = Date.now();
 
-          detectPitchAndDuration();
+          detectPitchSmooth();
         } catch (err) {
-          alert('マイクを起動できませんでした。ブラウザのマイク許可を確認してください。');
+          alert('マイクを起動できませんでした。ブラウザの権限をご確認ください。');
         }
       } else {
         stopRecording();
@@ -565,35 +632,35 @@
       micMeterBar.style.width = '0%';
     }
 
-    function detectPitchAndDuration() {
+    function detectPitchSmooth() {
       if (!isRecording) return;
 
       const buffer = new Float32Array(analyser.fftSize);
       analyser.getFloatTimeDomainData(buffer);
 
-      // 音量（RMS）計算
       let rms = 0;
       for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
       rms = Math.sqrt(rms / buffer.length);
 
-      // 音量メーター更新
-      const meterPercent = Math.min(100, rms * 400);
-      micMeterBar.style.width = `${meterPercent}%`;
+      micMeterBar.style.width = `${Math.min(100, rms * 450)}%`;
 
       const bpm = parseInt(document.getElementById('bpm-slider').value);
       const beatSec = 60 / bpm;
       const now = Date.now();
 
-      if (rms > 0.02) { // 発声中
+      if (rms > 0.035) {
         const freq = autoCorrelate(buffer, audioCtx.sampleRate);
         if (freq !== -1) {
+          pitchHistory.push(freq);
+          if (pitchHistory.length > 5) pitchHistory.shift();
+
+          const avgFreq = pitchHistory.reduce((a, b) => a + b, 0) / pitchHistory.length;
           const closestNote = NOTES.reduce((prev, curr) => 
-            Math.abs(curr.freq - freq) < Math.abs(prev.freq - freq) ? curr : prev
+            Math.abs(curr.freq - avgFreq) < Math.abs(prev.freq - avgFreq) ? curr : prev
           );
 
           pitchIndicator.textContent = `音階: ${closestNote.name}`;
 
-          // 休符の確定処理（直前まで無音だった場合）
           if (silenceStartTime > 0) {
             const silenceDuration = (now - silenceStartTime) / 1000;
             if (silenceDuration >= beatSec * 0.75) {
@@ -603,42 +670,42 @@
             silenceStartTime = 0;
           }
 
-          if (!currentSingNote) {
-            currentSingNote = closestNote;
-            singStartTime = now;
-          } else if (currentSingNote.name !== closestNote.name) {
-            // 音が変わったので直前の音を確定
-            const duration = (now - singStartTime) / 1000;
-            const noteType = calculateNoteType(duration, beatSec);
-            addNoteToSheet(currentSingNote, noteType);
-
-            currentSingNote = closestNote;
-            singStartTime = now;
+          if (!currentStableNote) {
+            currentStableNote = closestNote;
+            noteStartTime = now;
+          } else if (currentStableNote.name !== closestNote.name) {
+            const duration = (now - noteStartTime) / 1000;
+            if (duration >= 0.2) {
+              const noteType = calculateNoteType(duration, beatSec);
+              addNoteToSheet(currentStableNote, noteType);
+              currentStableNote = closestNote;
+              noteStartTime = now;
+            }
           }
         }
-      } else { // 無音状態
-        if (currentSingNote) {
-          // 歌い終わり：音符を確定
-          const duration = (now - singStartTime) / 1000;
-          const noteType = calculateNoteType(duration, beatSec);
-          addNoteToSheet(currentSingNote, noteType);
-
-          currentSingNote = null;
+      } else {
+        if (currentStableNote) {
+          const duration = (now - noteStartTime) / 1000;
+          if (duration >= 0.18) {
+            const noteType = calculateNoteType(duration, beatSec);
+            addNoteToSheet(currentStableNote, noteType);
+          }
+          currentStableNote = null;
           silenceStartTime = now;
+          pitchHistory = [];
         }
         pitchIndicator.textContent = '（無音）';
       }
 
-      requestAnimationFrame(detectPitchAndDuration);
+      requestAnimationFrame(detectPitchSmooth);
     }
 
-    // 時間（秒）から最適な音符タイプ（1, 2, 4, 8）を割り出す
     function calculateNoteType(durationSec, beatSec) {
       const beats = durationSec / beatSec;
-      if (beats >= 3.0) return 1; // 全音符
-      if (beats >= 1.5) return 2; // 二分音符
-      if (beats >= 0.75) return 4; // 四分音符
-      return 8; // 八分音符
+      if (beats >= 3.0) return 1;
+      if (beats >= 1.5) return 2;
+      if (beats >= 0.75) return 4;
+      return 8;
     }
 
     function autoCorrelate(buf, sampleRate) {
@@ -666,7 +733,6 @@
       return maxpos !== -1 ? sampleRate / maxpos : -1;
     }
 
-    // メトロノーム ＆ 再生
     const metroToggle = document.getElementById('metro-toggle');
     const bpmSlider = document.getElementById('bpm-slider');
     const bpmVal = document.getElementById('bpm-val');
@@ -725,7 +791,6 @@
 
     document.getElementById('btn-clear').addEventListener('click', () => {
       recordedNotes = [];
-      currentX = 80;
       renderSheet();
     });
   </script>
