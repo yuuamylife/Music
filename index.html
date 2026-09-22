@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ボイス＆ピアノ 作曲アプリ</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      background: #12131C;
+      color: #fff;
+      font-family: 'Mochiy Pop One', sans-serif;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* メインコンテナ */
+    #app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      max-width: 1024px;
+      margin: 0 auto;
+    }
+
+    /* ヘッダー・コントロールバー */
+    header {
+      background: #1c1e2d;
+      padding: 10px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #2e3248;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      font-size: 1.1rem;
+      color: #00ffcc;
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      background: #2b2e45;
+      color: #fff;
+      border: 2px solid #454968;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 0 #181926;
+      transition: all 0.1s;
+    }
+
+    .btn:active, .btn.active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #181926;
+    }
+
+    .btn-rec {
+      background: #ff3366;
+      border-color: #ff6688;
+    }
+
+    .btn-rec.recording {
+      animation: pulse 1s infinite alternate;
+      background: #ff0044;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 5px #ff0044; }
+      100% { box-shadow: 0 0 20px #ff0044; }
+    }
+
+    .btn-play {
+      background: #00cc88;
+      border-color: #33ffaa;
+    }
+
+    /* メトロノーム設定 */
+    .metro-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #161722;
+      padding: 4px 10px;
+      border-radius: 10px;
+      border: 1px solid #2a2d42;
+      font-size: 0.8rem;
+    }
+
+    /* 上部：五線譜エリア */
+    #score-area {
+      flex: 1;
+      background: #181926;
+      position: relative;
+      overflow-x: auto;
+      overflow-y: hidden;
+      display: flex;
+      align-items: center;
+      padding: 20px 0;
+    }
+
+    svg#sheet {
+      height: 100%;
+      min-width: 100%;
+      background: #1a1b2a;
+    }
+
+    /* 下部：キーボードエリア */
+    #keyboard-area {
+      height: 180px;
+      background: #0f1017;
+      border-top: 3px solid #ff5500;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      padding: 10px 5px 15px;
+    }
+
+    .piano-container {
+      position: relative;
+      display: flex;
+      height: 100%;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .white-key {
+      flex: 1;
+      background: linear-gradient(to bottom, #eeeeee 0%, #ffffff 100%);
+      border: 1px solid #bbb;
+      border-bottom: 5px solid #999;
+      border-radius: 0 0 6px 6px;
+      position: relative;
+      z-index: 1;
+      cursor: pointer;
+    }
+
+    .white-key:active, .white-key.active {
+      background: #00ffcc;
+      border-bottom-width: 2px;
+      transform: translateY(3px);
+    }
+
+    .black-key {
+      position: absolute;
+      width: 6.5%;
+      height: 60%;
+      background: linear-gradient(to bottom, #333 0%, #000 100%);
+      border-radius: 0 0 4px 4px;
+      z-index: 2;
+      border: 1px solid #000;
+      border-bottom: 4px solid #222;
+      cursor: pointer;
+    }
+
+    .black-key:active, .black-key.active {
+      background: #ff5500;
+      border-bottom-width: 1px;
+      transform: translateY(2px);
+    }
+
+    /* 音高・ステータスインジケーター */
+    #pitch-indicator {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: rgba(0,0,0,0.7);
+      padding: 4px 12px;
+      border-radius: 12px;
+      color: #00ffcc;
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app">
+    <header>
+      <div class="title">🎵 スプラ風・歌＆ピアノ作曲</div>
+      
+      <div class="controls">
+        <!-- メトロノーム設定 -->
+        <div class="metro-group">
+          <label>
+            <input type="checkbox" id="metro-toggle"> ⏱ メトロノーム
+          </label>
+          <input type="range" id="bpm-slider" min="60" max="180" value="100" style="width:60px;">
+          <span id="bpm-val">100</span>
+        </div>
+
+        <button class="btn btn-rec" id="btn-rec">🎙️ 歌って録音</button>
+        <button class="btn btn-play" id="btn-play">▶ 再生</button>
+        <button class="btn" id="btn-clear">🗑️ クリア</button>
+      </div>
+    </header>
+
+    <!-- 五線譜（SVG描画） -->
+    <div id="score-area">
+      <div id="pitch-indicator">マイク待機中...</div>
+      <svg id="sheet" viewBox="0 0 1000 200" preserveAspectRatio="xMinYMid meet">
+        <!-- 五線譜の線 -->
+        <line x1="0" y1="60" x2="1000" y2="60" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="80" x2="1000" y2="80" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="100" x2="1000" y2="100" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="120" x2="1000" y2="120" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="140" x2="1000" y2="140" stroke="#555770" stroke-width="2"/>
+        
+        <!-- ト音記号テキスト -->
+        <text x="15" y="130" font-size="70" fill="#00ffcc" font-family="sans-serif">𝄞</text>
+        
+        <!-- ノート（音符）がここに描画される -->
+        <g id="notes-layer"></g>
+        <!-- 再生バー -->
+        <line id="play-cursor" x1="60" y1="30" x2="60" y2="170" stroke="#ff5500" stroke-width="3" visibility="hidden"/>
+      </svg>
+    </div>
+
+    <!-- 本格ピアノ鍵盤 -->
+    <div id="keyboard-area">
+      <div class="piano-container" id="piano"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- Web Audio API 初期化（タップ時に解凍） ---
+    let audioCtx = null;
+    
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    window.addEventListener('touchstart', initAudio, { once: true });
+    window.addEventListener('click', initAudio, { once: true });
+
+    // 音階データ（C4～G5）
+    const NOTES = [
+      { name: 'C4', freq: 261.63, keyType: 'white', lineY: 160, isLedger: true },
+      { name: 'C#4', freq: 277.18, keyType: 'black', lineY: 160 },
+      { name: 'D4', freq: 293.66, keyType: 'white', lineY: 150 },
+      { name: 'D#4', freq: 311.13, keyType: 'black', lineY: 150 },
+      { name: 'E4', freq: 329.63, keyType: 'white', lineY: 140 },
+      { name: 'F4', freq: 349.23, keyType: 'white', lineY: 130 },
+      { name: 'F#4', freq: 369.99, keyType: 'black', lineY: 130 },
+      { name: 'G4', freq: 392.00, keyType: 'white', lineY: 120 },
+      { name: 'G#4', freq: 415.30, keyType: 'black', lineY: 120 },
+      { name: 'A4', freq: 440.00, keyType: 'white', lineY: 110 },
+      { name: 'A#4', freq: 466.16, keyType: 'black', lineY: 110 },
+      { name: 'B4', freq: 493.88, keyType: 'white', lineY: 100 },
+      { name: 'C5', freq: 523.25, keyType: 'white', lineY: 90 },
+      { name: 'C#5', freq: 554.37, keyType: 'black', lineY: 90 },
+      { name: 'D5', freq: 587.33, keyType: 'white', lineY: 80 },
+      { name: 'D#5', freq: 622.25, keyType: 'black', lineY: 80 },
+      { name: 'E5', freq: 659.25, keyType: 'white', lineY: 70 },
+      { name: 'F5', freq: 698.46, keyType: 'white', lineY: 60 },
+      { name: 'F#5', freq: 739.99, keyType: 'black', lineY: 60 },
+      { name: 'G5', freq: 783.99, keyType: 'white', lineY: 50 },
+    ];
+
+    // ピアノ音をシンセサイズで鳴らす
+    function playTone(freq, duration = 0.5) {
+      initAudio();
+      if (!audioCtx) return;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'triangle'; // ピアノに近い柔らかい音
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    // --- ピアノ鍵盤の自動生成 ---
+    const pianoEl = document.getElementById('piano');
+    const whiteNotes = NOTES.filter(n => n.keyType === 'white');
+
+    whiteNotes.forEach((note, index) => {
+      const wKey = document.createElement('div');
+      wKey.className = 'white-key';
+      wKey.dataset.note = note.name;
+      
+      // タッチ＆クリックイベント
+      const trigger = (e) => {
+        e.preventDefault();
+        playTone(note.freq);
+        addNoteToSheet(note);
+        wKey.classList.add('active');
+        setTimeout(() => wKey.classList.remove('active'), 200);
+      };
+      
+      wKey.addEventListener('touchstart', trigger);
+      wKey.addEventListener('mousedown', trigger);
+      pianoEl.appendChild(wKey);
+    });
+
+    // 黒鍵の正しく美しい配置設定
+    const blackKeyIndexes = [
+      { noteName: 'C#4', leftIndex: 0 },
+      { noteName: 'D#4', leftIndex: 1 },
+      { noteName: 'F#4', leftIndex: 3 },
+      { noteName: 'G#4', leftIndex: 4 },
+      { noteName: 'A#4', leftIndex: 5 },
+      { noteName: 'C#5', leftIndex: 7 },
+      { noteName: 'D#5', leftIndex: 8 },
+      { noteName: 'F#5', leftIndex: 10 },
+    ];
+
+    const totalWhiteKeys = whiteNotes.length;
+    blackKeyIndexes.forEach(b => {
+      const note = NOTES.find(n => n.name === b.noteName);
+      if (!note) return;
+
+      const bKey = document.createElement('div');
+      bKey.className = 'black-key';
+      // 白鍵の幅基準で正確な位置へ配置
+      const percentLeft = ((b.leftIndex + 1) / totalWhiteKeys * 100) - 3.25;
+      bKey.style.left = `${percentLeft}%`;
+
+      const trigger = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        playTone(note.freq);
+        addNoteToSheet(note);
+        bKey.classList.add('active');
+        setTimeout(() => bKey.classList.remove('active'), 200);
+      };
+
+      bKey.addEventListener('touchstart', trigger);
+      bKey.addEventListener('mousedown', trigger);
+      pianoEl.appendChild(bKey);
+    });
+
+    // --- 楽譜（五線譜）の管理 ---
+    let recordedNotes = [];
+    const notesLayer = document.getElementById('notes-layer');
+    let currentX = 80;
+
+    function addNoteToSheet(note) {
+      if (currentX > 950) return; // 画面端
+
+      const noteData = { ...note, x: currentX };
+      recordedNotes.push(noteData);
+
+      renderSheet();
+      currentX += 35;
+    }
+
+    function renderSheet() {
+      notesLayer.innerHTML = '';
+      recordedNotes.forEach(n => {
+        // 下加線 (ドのとき)
+        if (n.isLedger) {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', n.x - 10);
+          line.setAttribute('y1', n.lineY);
+          line.setAttribute('x2', n.x + 10);
+          line.setAttribute('y2', n.lineY);
+          line.setAttribute('stroke', '#fff');
+          line.setAttribute('stroke-width', '2');
+          notesLayer.appendChild(line);
+        }
+
+        // 音符（玉）
+        const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        ellipse.setAttribute('cx', n.x);
+        ellipse.setAttribute('cy', n.lineY);
+        ellipse.setAttribute('rx', '7');
+        ellipse.setAttribute('ry', '5');
+        ellipse.setAttribute('fill', '#00ffcc');
+        ellipse.setAttribute('transform', `rotate(-20 ${n.x} ${n.lineY})`);
+        notesLayer.appendChild(ellipse);
+
+        // ぼう（符幹）
+        const stem = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        stem.setAttribute('x1', n.x + 6);
+        stem.setAttribute('y1', n.lineY);
+        stem.setAttribute('x2', n.x + 6);
+        stem.setAttribute('y2', n.lineY - 28);
+        stem.setAttribute('stroke', '#00ffcc');
+        stem.setAttribute('stroke-width', '2');
+        notesLayer.appendChild(stem);
+      });
+    }
+
+    // --- マイクで音高（ピッチ）検出 ---
+    let isRecording = false;
+    let micStream = null;
+    let analyser = null;
+    const btnRec = document.getElementById('btn-rec');
+    const pitchIndicator = document.getElementById('pitch-indicator');
+
+    btnRec.addEventListener('click', async () => {
+      initAudio();
+      if (!isRecording) {
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const source = audioCtx.createMediaStreamSource(micStream);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 2048;
+          source.connect(analyser);
+
+          isRecording = true;
+          btnRec.classList.add('recording');
+          btnRec.textContent = '⏹ 録音停止';
+          pitchIndicator.textContent = '声を聞き取り中...';
+          detectPitch();
+        } catch (err) {
+          alert('マイクのアクセスが拒否されたか、対応していません。');
+        }
+      } else {
+        stopRecording();
+      }
+    });
+
+    function stopRecording() {
+      isRecording = false;
+      if (micStream) micStream.getTracks().forEach(t => t.stop());
+      btnRec.classList.remove('recording');
+      btnRec.textContent = '🎙️ 歌って録音';
+      pitchIndicator.textContent = 'マイク待機中...';
+    }
+
+    // 自己相関法による高精度ピッチ検出
+    let lastDetectedTime = 0;
+    function detectPitch() {
+      if (!isRecording) return;
+
+      const buffer = new Float32Array(analyser.fftSize);
+      analyser.getFloatTimeDomainData(buffer);
+
+      const freq = autoCorrelate(buffer, audioCtx.sampleRate);
+
+      if (freq !== -1) {
+        // 最も近い音階を特定
+        const closestNote = NOTES.reduce((prev, curr) => 
+          Math.abs(curr.freq - freq) < Math.abs(prev.freq - freq) ? curr : prev
+        );
+
+        pitchIndicator.textContent = `検出: ${closestNote.name}`;
+
+        const now = Date.now();
+        if (now - lastDetectedTime > 350) { // 連打防止間隔
+          playTone(closestNote.freq, 0.3);
+          addNoteToSheet(closestNote);
+          lastDetectedTime = now;
+        }
+      }
+
+      requestAnimationFrame(detectPitch);
+    }
+
+    function autoCorrelate(buf, sampleRate) {
+      let SIZE = buf.length;
+      let rms = 0;
+      for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+      rms = Math.sqrt(rms / SIZE);
+      if (rms < 0.03) return -1; // 音が小さすぎる場合は無視
+
+      let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+      for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break; }
+      for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+
+      buf = buf.slice(r1, r2);
+      SIZE = buf.length;
+
+      let c = new Array(SIZE).fill(0);
+      for (let i = 0; i < SIZE; i++)
+        for (let j = 0; j < SIZE - i; j++)
+          c[i] = c[i] + buf[j] * buf[j + i];
+
+      let d = 0; while (c[d] > c[d + 1]) d++;
+      let maxval = -1, maxpos = -1;
+      for (let i = d; i < SIZE; i++) {
+        if (c[i] > maxval) {
+          maxval = c[i];
+          maxpos = i;
+        }
+      }
+      let T0 = maxpos;
+      return sampleRate / T0;
+    }
+
+    // --- メトロノーム ＆ 再生コントロール ---
+    const metroToggle = document.getElementById('metro-toggle');
+    const bpmSlider = document.getElementById('bpm-slider');
+    const bpmVal = document.getElementById('bpm-val');
+    let metroInterval = null;
+
+    bpmSlider.addEventListener('input', () => {
+      bpmVal.textContent = bpmSlider.value;
+      if (metroToggle.checked) startMetronome();
+    });
+
+    metroToggle.addEventListener('change', () => {
+      if (metroToggle.checked) startMetronome();
+      else clearInterval(metroInterval);
+    });
+
+    function startMetronome() {
+      clearInterval(metroInterval);
+      const intervalMs = (60 / parseInt(bpmSlider.value)) * 1000;
+      metroInterval = setInterval(() => {
+        if (metroToggle.checked) playTone(800, 0.05); // カチッという音
+      }, intervalMs);
+    }
+
+    // 楽譜の再生機能
+    const btnPlay = document.getElementById('btn-play');
+    const playCursor = document.getElementById('play-cursor');
+
+    btnPlay.addEventListener('click', () => {
+      initAudio();
+      if (recordedNotes.length === 0) return;
+
+      playCursor.setAttribute('visibility', 'visible');
+      let i = 0;
+
+      function playNext() {
+        if (i >= recordedNotes.length) {
+          playCursor.setAttribute('visibility', 'hidden');
+          return;
+        }
+
+        const note = recordedNotes[i];
+        playTone(note.freq, 0.4);
+        playCursor.setAttribute('x1', note.x);
+        playCursor.setAttribute('x2', note.x);
+
+        i++;
+        setTimeout(playNext, 400);
+      }
+
+      playNext();
+    });
+
+    // クリアボタン
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      recordedNotes = [];
+      currentX = 80;
+      renderSheet();
+    });
+  </script>
+</body>
+</html>
