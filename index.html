@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ボイス＆ピアノ 作曲アプリ</title>
+  <title>ボイス＆ピアノ 作曲アプリ (音符・休符対応版)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap');
 
@@ -26,7 +26,6 @@
       overflow: hidden;
     }
 
-    /* メインコンテナ */
     #app {
       display: flex;
       flex-direction: column;
@@ -36,20 +35,19 @@
       margin: 0 auto;
     }
 
-    /* ヘッダー・コントロールバー */
     header {
       background: #1c1e2d;
-      padding: 10px 15px;
+      padding: 8px 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 2px solid #2e3248;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
     }
 
     .title {
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: #00ffcc;
       text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
     }
@@ -57,28 +55,29 @@
     .controls {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      flex-wrap: wrap;
     }
 
     .btn {
       background: #2b2e45;
       color: #fff;
       border: 2px solid #454968;
-      padding: 8px 14px;
+      padding: 6px 12px;
       border-radius: 12px;
       font-family: inherit;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
-      box-shadow: 0 4px 0 #181926;
+      gap: 4px;
+      box-shadow: 0 3px 0 #181926;
       transition: all 0.1s;
     }
 
     .btn:active, .btn.active {
       transform: translateY(2px);
-      box-shadow: 0 2px 0 #181926;
+      box-shadow: 0 1px 0 #181926;
     }
 
     .btn-rec {
@@ -101,19 +100,45 @@
       border-color: #33ffaa;
     }
 
-    /* メトロノーム設定 */
     .metro-group {
       display: flex;
       align-items: center;
       gap: 6px;
       background: #161722;
-      padding: 4px 10px;
+      padding: 4px 8px;
       border-radius: 10px;
       border: 1px solid #2a2d42;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
     }
 
-    /* 上部：五線譜エリア */
+    /* 音符選択ツールバー */
+    .note-selector {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #161722;
+      padding: 4px 8px;
+      border-radius: 10px;
+      border: 1px solid #2a2d42;
+    }
+
+    .note-opt {
+      background: #222538;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .note-opt.selected {
+      background: #00ffcc;
+      color: #000;
+      border-color: #fff;
+    }
+
+    /* 五線譜エリア */
     #score-area {
       flex: 1;
       background: #181926;
@@ -122,7 +147,6 @@
       overflow-y: hidden;
       display: flex;
       align-items: center;
-      padding: 20px 0;
     }
 
     svg#sheet {
@@ -131,15 +155,15 @@
       background: #1a1b2a;
     }
 
-    /* 下部：キーボードエリア */
+    /* 下部：キーボードエリア（画面下部と被らないように持ち上げ調整） */
     #keyboard-area {
-      height: 180px;
+      height: 190px;
       background: #0f1017;
       border-top: 3px solid #ff5500;
       position: relative;
       display: flex;
       justify-content: center;
-      padding: 10px 5px 15px;
+      padding: 8px 10px 30px; /* 下部に30pxの余白を追加 */
     }
 
     .piano-container {
@@ -170,7 +194,7 @@
     .black-key {
       position: absolute;
       width: 6.5%;
-      height: 60%;
+      height: 58%;
       background: linear-gradient(to bottom, #333 0%, #000 100%);
       border-radius: 0 0 4px 4px;
       z-index: 2;
@@ -185,17 +209,40 @@
       transform: translateY(2px);
     }
 
-    /* 音高・ステータスインジケーター */
-    #pitch-indicator {
+    /* インジケーター＆マイクメーター */
+    #status-box {
       position: absolute;
       top: 10px;
       right: 15px;
-      background: rgba(0,0,0,0.7);
-      padding: 4px 12px;
-      border-radius: 12px;
-      color: #00ffcc;
-      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
       pointer-events: none;
+    }
+
+    #pitch-indicator {
+      background: rgba(0,0,0,0.75);
+      padding: 4px 10px;
+      border-radius: 10px;
+      color: #00ffcc;
+      font-size: 0.8rem;
+    }
+
+    #mic-meter-bg {
+      width: 120px;
+      height: 8px;
+      background: #222;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #444;
+    }
+
+    #mic-meter-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(to right, #00ffcc, #ff3366);
+      transition: width 0.05s;
     }
   </style>
 </head>
@@ -203,15 +250,21 @@
 
   <div id="app">
     <header>
-      <div class="title">🎵 スプラ風・歌＆ピアノ作曲</div>
+      <div class="title">🎵 歌＆ピアノ作曲</div>
       
       <div class="controls">
-        <!-- メトロノーム設定 -->
+        <!-- 音符種類選択（ピアノ用） -->
+        <div class="note-selector">
+          <span style="font-size:0.7rem; color:#aaa;">音符:</span>
+          <button class="note-opt" data-type="1">𝄽/𝄻 (全)</button>
+          <button class="note-opt" data-type="2">𝄿 (2分)</button>
+          <button class="note-opt selected" data-type="4">♩ (4分)</button>
+          <button class="note-opt" data-type="8">♪ (8分)</button>
+        </div>
+
         <div class="metro-group">
-          <label>
-            <input type="checkbox" id="metro-toggle"> ⏱ メトロノーム
-          </label>
-          <input type="range" id="bpm-slider" min="60" max="180" value="100" style="width:60px;">
+          <label><input type="checkbox" id="metro-toggle"> ⏱ メトロノーム</label>
+          <input type="range" id="bpm-slider" min="60" max="180" value="100" style="width:50px;">
           <span id="bpm-val">100</span>
         </div>
 
@@ -221,37 +274,35 @@
       </div>
     </header>
 
-    <!-- 五線譜（SVG描画） -->
     <div id="score-area">
-      <div id="pitch-indicator">マイク待機中...</div>
-      <svg id="sheet" viewBox="0 0 1000 200" preserveAspectRatio="xMinYMid meet">
-        <!-- 五線譜の線 -->
-        <line x1="0" y1="60" x2="1000" y2="60" stroke="#555770" stroke-width="2"/>
-        <line x1="0" y1="80" x2="1000" y2="80" stroke="#555770" stroke-width="2"/>
-        <line x1="0" y1="100" x2="1000" y2="100" stroke="#555770" stroke-width="2"/>
-        <line x1="0" y1="120" x2="1000" y2="120" stroke="#555770" stroke-width="2"/>
-        <line x1="0" y1="140" x2="1000" y2="140" stroke="#555770" stroke-width="2"/>
+      <div id="status-box">
+        <div id="pitch-indicator">マイク待機中...</div>
+        <div id="mic-meter-bg"><div id="mic-meter-bar"></div></div>
+      </div>
+
+      <svg id="sheet" viewBox="0 0 1200 200" preserveAspectRatio="xMinYMid meet">
+        <line x1="0" y1="60" x2="1200" y2="60" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="80" x2="1200" y2="80" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="100" x2="1200" y2="100" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="120" x2="1200" y2="120" stroke="#555770" stroke-width="2"/>
+        <line x1="0" y1="140" x2="1200" y2="140" stroke="#555770" stroke-width="2"/>
         
-        <!-- ト音記号テキスト -->
         <text x="15" y="130" font-size="70" fill="#00ffcc" font-family="sans-serif">𝄞</text>
         
-        <!-- ノート（音符）がここに描画される -->
         <g id="notes-layer"></g>
-        <!-- 再生バー -->
-        <line id="play-cursor" x1="60" y1="30" x2="60" y2="170" stroke="#ff5500" stroke-width="3" visibility="hidden"/>
+        <line id="play-cursor" x1="70" y1="30" x2="70" y2="170" stroke="#ff5500" stroke-width="3" visibility="hidden"/>
       </svg>
     </div>
 
-    <!-- 本格ピアノ鍵盤 -->
     <div id="keyboard-area">
       <div class="piano-container" id="piano"></div>
     </div>
   </div>
 
   <script>
-    // --- Web Audio API 初期化（タップ時に解凍） ---
     let audioCtx = null;
-    
+    let selectedNoteType = 4; // デフォルト四分音符 (4 = 4分, 2 = 2分, 1 = 全, 8 = 8分)
+
     function initAudio() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -264,7 +315,16 @@
     window.addEventListener('touchstart', initAudio, { once: true });
     window.addEventListener('click', initAudio, { once: true });
 
-    // 音階データ（C4～G5）
+    // 音符選択ボタンイベント
+    document.querySelectorAll('.note-opt').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.note-opt').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedNoteType = parseInt(btn.dataset.type);
+      });
+    });
+
+    // 音階データ
     const NOTES = [
       { name: 'C4', freq: 261.63, keyType: 'white', lineY: 160, isLedger: true },
       { name: 'C#4', freq: 277.18, keyType: 'black', lineY: 160 },
@@ -288,7 +348,6 @@
       { name: 'G5', freq: 783.99, keyType: 'white', lineY: 50 },
     ];
 
-    // ピアノ音をシンセサイズで鳴らす
     function playTone(freq, duration = 0.5) {
       initAudio();
       if (!audioCtx) return;
@@ -296,7 +355,7 @@
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
 
-      osc.type = 'triangle'; // ピアノに近い柔らかい音
+      osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
 
       gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
@@ -309,20 +368,18 @@
       osc.stop(audioCtx.currentTime + duration);
     }
 
-    // --- ピアノ鍵盤の自動生成 ---
+    // ピアノ作成
     const pianoEl = document.getElementById('piano');
     const whiteNotes = NOTES.filter(n => n.keyType === 'white');
 
-    whiteNotes.forEach((note, index) => {
+    whiteNotes.forEach(note => {
       const wKey = document.createElement('div');
       wKey.className = 'white-key';
-      wKey.dataset.note = note.name;
       
-      // タッチ＆クリックイベント
       const trigger = (e) => {
         e.preventDefault();
-        playTone(note.freq);
-        addNoteToSheet(note);
+        playTone(note.freq, getDurationFromType(selectedNoteType));
+        addNoteToSheet(note, selectedNoteType);
         wKey.classList.add('active');
         setTimeout(() => wKey.classList.remove('active'), 200);
       };
@@ -332,34 +389,26 @@
       pianoEl.appendChild(wKey);
     });
 
-    // 黒鍵の正しく美しい配置設定
     const blackKeyIndexes = [
-      { noteName: 'C#4', leftIndex: 0 },
-      { noteName: 'D#4', leftIndex: 1 },
-      { noteName: 'F#4', leftIndex: 3 },
-      { noteName: 'G#4', leftIndex: 4 },
-      { noteName: 'A#4', leftIndex: 5 },
-      { noteName: 'C#5', leftIndex: 7 },
-      { noteName: 'D#5', leftIndex: 8 },
-      { noteName: 'F#5', leftIndex: 10 },
+      { noteName: 'C#4', leftIndex: 0 }, { noteName: 'D#4', leftIndex: 1 },
+      { noteName: 'F#4', leftIndex: 3 }, { noteName: 'G#4', leftIndex: 4 }, { noteName: 'A#4', leftIndex: 5 },
+      { noteName: 'C#5', leftIndex: 7 }, { noteName: 'D#5', leftIndex: 8 }, { noteName: 'F#5', leftIndex: 10 }
     ];
 
-    const totalWhiteKeys = whiteNotes.length;
     blackKeyIndexes.forEach(b => {
       const note = NOTES.find(n => n.name === b.noteName);
       if (!note) return;
 
       const bKey = document.createElement('div');
       bKey.className = 'black-key';
-      // 白鍵の幅基準で正確な位置へ配置
-      const percentLeft = ((b.leftIndex + 1) / totalWhiteKeys * 100) - 3.25;
+      const percentLeft = ((b.leftIndex + 1) / whiteNotes.length * 100) - 3.25;
       bKey.style.left = `${percentLeft}%`;
 
       const trigger = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        playTone(note.freq);
-        addNoteToSheet(note);
+        playTone(note.freq, getDurationFromType(selectedNoteType));
+        addNoteToSheet(note, selectedNoteType);
         bKey.classList.add('active');
         setTimeout(() => bKey.classList.remove('active'), 200);
       };
@@ -369,25 +418,53 @@
       pianoEl.appendChild(bKey);
     });
 
-    // --- 楽譜（五線譜）の管理 ---
+    function getDurationFromType(type) {
+      const bpm = parseInt(document.getElementById('bpm-slider').value);
+      const beatSec = 60 / bpm;
+      if (type === 1) return beatSec * 4;
+      if (type === 2) return beatSec * 2;
+      if (type === 4) return beatSec;
+      if (type === 8) return beatSec * 0.5;
+      return beatSec;
+    }
+
+    // 楽譜データ
     let recordedNotes = [];
     const notesLayer = document.getElementById('notes-layer');
     let currentX = 80;
 
-    function addNoteToSheet(note) {
-      if (currentX > 950) return; // 画面端
+    function addNoteToSheet(note, type = 4, isRest = false) {
+      if (currentX > 1150) return;
 
-      const noteData = { ...note, x: currentX };
+      const noteData = { ...note, type, isRest, x: currentX };
       recordedNotes.push(noteData);
 
+      // 横幅の計算 (音符の長さに応じて幅を変える)
+      let spacing = 35;
+      if (type === 1) spacing = 65;
+      else if (type === 2) spacing = 50;
+      else if (type === 8) spacing = 25;
+
+      currentX += spacing;
       renderSheet();
-      currentX += 35;
     }
 
     function renderSheet() {
       notesLayer.innerHTML = '';
       recordedNotes.forEach(n => {
-        // 下加線 (ドのとき)
+        if (n.isRest) {
+          // 休符の描画
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', n.x - 5);
+          text.setAttribute('y', 110);
+          text.setAttribute('font-size', '28');
+          text.setAttribute('fill', '#ff5500');
+          text.textContent = n.type === 8 ? '𝄾' : (n.type === 2 || n.type === 1 ? '𝄻' : '𝄽');
+          notesLayer.appendChild(text);
+          return;
+        }
+
+        // 加線 (ド用)
         if (n.isLedger) {
           const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
           line.setAttribute('x1', n.x - 10);
@@ -399,40 +476,66 @@
           notesLayer.appendChild(line);
         }
 
-        // 音符（玉）
+        // 音符の玉 (全音符・二分音符は白抜き)
         const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
         ellipse.setAttribute('cx', n.x);
         ellipse.setAttribute('cy', n.lineY);
         ellipse.setAttribute('rx', '7');
         ellipse.setAttribute('ry', '5');
-        ellipse.setAttribute('fill', '#00ffcc');
+        ellipse.setAttribute('fill', (n.type === 1 || n.type === 2) ? '#1a1b2a' : '#00ffcc');
+        ellipse.setAttribute('stroke', '#00ffcc');
+        ellipse.setAttribute('stroke-width', '2');
         ellipse.setAttribute('transform', `rotate(-20 ${n.x} ${n.lineY})`);
         notesLayer.appendChild(ellipse);
 
-        // ぼう（符幹）
-        const stem = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        stem.setAttribute('x1', n.x + 6);
-        stem.setAttribute('y1', n.lineY);
-        stem.setAttribute('x2', n.x + 6);
-        stem.setAttribute('y2', n.lineY - 28);
-        stem.setAttribute('stroke', '#00ffcc');
-        stem.setAttribute('stroke-width', '2');
-        notesLayer.appendChild(stem);
+        // 符幹（棒）：全音符以外で描画
+        if (n.type !== 1) {
+          const stem = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          stem.setAttribute('x1', n.x + 6);
+          stem.setAttribute('y1', n.lineY);
+          stem.setAttribute('x2', n.x + 6);
+          stem.setAttribute('y2', n.lineY - 28);
+          stem.setAttribute('stroke', '#00ffcc');
+          stem.setAttribute('stroke-width', '2');
+          notesLayer.appendChild(stem);
+
+          // 八分音符の旗
+          if (n.type === 8) {
+            const flag = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            flag.setAttribute('d', `M ${n.x + 6} ${n.lineY - 28} Q ${n.x + 16} ${n.lineY - 18} ${n.x + 12} ${n.lineY - 10}`);
+            flag.setAttribute('stroke', '#00ffcc');
+            flag.setAttribute('stroke-width', '2.5');
+            flag.setAttribute('fill', 'none');
+            notesLayer.appendChild(flag);
+          }
+        }
       });
     }
 
-    // --- マイクで音高（ピッチ）検出 ---
+    // --- 高感度マイク解析 ＆ 音の長さ・休符自動判定 ---
     let isRecording = false;
     let micStream = null;
     let analyser = null;
     const btnRec = document.getElementById('btn-rec');
     const pitchIndicator = document.getElementById('pitch-indicator');
+    const micMeterBar = document.getElementById('mic-meter-bar');
+
+    let currentSingNote = null;
+    let singStartTime = 0;
+    let silenceStartTime = Date.now();
 
     btnRec.addEventListener('click', async () => {
       initAudio();
       if (!isRecording) {
         try {
-          micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              autoGainControl: true,
+              noiseSuppression: false
+            }
+          });
+
           const source = audioCtx.createMediaStreamSource(micStream);
           analyser = audioCtx.createAnalyser();
           analyser.fftSize = 2048;
@@ -441,10 +544,12 @@
           isRecording = true;
           btnRec.classList.add('recording');
           btnRec.textContent = '⏹ 録音停止';
-          pitchIndicator.textContent = '声を聞き取り中...';
-          detectPitch();
+          pitchIndicator.textContent = '聴き取り中...';
+          silenceStartTime = Date.now();
+
+          detectPitchAndDuration();
         } catch (err) {
-          alert('マイクのアクセスが拒否されたか、対応していません。');
+          alert('マイクを起動できませんでした。ブラウザのマイク許可を確認してください。');
         }
       } else {
         stopRecording();
@@ -457,45 +562,88 @@
       btnRec.classList.remove('recording');
       btnRec.textContent = '🎙️ 歌って録音';
       pitchIndicator.textContent = 'マイク待機中...';
+      micMeterBar.style.width = '0%';
     }
 
-    // 自己相関法による高精度ピッチ検出
-    let lastDetectedTime = 0;
-    function detectPitch() {
+    function detectPitchAndDuration() {
       if (!isRecording) return;
 
       const buffer = new Float32Array(analyser.fftSize);
       analyser.getFloatTimeDomainData(buffer);
 
-      const freq = autoCorrelate(buffer, audioCtx.sampleRate);
+      // 音量（RMS）計算
+      let rms = 0;
+      for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
+      rms = Math.sqrt(rms / buffer.length);
 
-      if (freq !== -1) {
-        // 最も近い音階を特定
-        const closestNote = NOTES.reduce((prev, curr) => 
-          Math.abs(curr.freq - freq) < Math.abs(prev.freq - freq) ? curr : prev
-        );
+      // 音量メーター更新
+      const meterPercent = Math.min(100, rms * 400);
+      micMeterBar.style.width = `${meterPercent}%`;
 
-        pitchIndicator.textContent = `検出: ${closestNote.name}`;
+      const bpm = parseInt(document.getElementById('bpm-slider').value);
+      const beatSec = 60 / bpm;
+      const now = Date.now();
 
-        const now = Date.now();
-        if (now - lastDetectedTime > 350) { // 連打防止間隔
-          playTone(closestNote.freq, 0.3);
-          addNoteToSheet(closestNote);
-          lastDetectedTime = now;
+      if (rms > 0.02) { // 発声中
+        const freq = autoCorrelate(buffer, audioCtx.sampleRate);
+        if (freq !== -1) {
+          const closestNote = NOTES.reduce((prev, curr) => 
+            Math.abs(curr.freq - freq) < Math.abs(prev.freq - freq) ? curr : prev
+          );
+
+          pitchIndicator.textContent = `音階: ${closestNote.name}`;
+
+          // 休符の確定処理（直前まで無音だった場合）
+          if (silenceStartTime > 0) {
+            const silenceDuration = (now - silenceStartTime) / 1000;
+            if (silenceDuration >= beatSec * 0.75) {
+              const restType = calculateNoteType(silenceDuration, beatSec);
+              addNoteToSheet({ name: 'REST', lineY: 100 }, restType, true);
+            }
+            silenceStartTime = 0;
+          }
+
+          if (!currentSingNote) {
+            currentSingNote = closestNote;
+            singStartTime = now;
+          } else if (currentSingNote.name !== closestNote.name) {
+            // 音が変わったので直前の音を確定
+            const duration = (now - singStartTime) / 1000;
+            const noteType = calculateNoteType(duration, beatSec);
+            addNoteToSheet(currentSingNote, noteType);
+
+            currentSingNote = closestNote;
+            singStartTime = now;
+          }
         }
+      } else { // 無音状態
+        if (currentSingNote) {
+          // 歌い終わり：音符を確定
+          const duration = (now - singStartTime) / 1000;
+          const noteType = calculateNoteType(duration, beatSec);
+          addNoteToSheet(currentSingNote, noteType);
+
+          currentSingNote = null;
+          silenceStartTime = now;
+        }
+        pitchIndicator.textContent = '（無音）';
       }
 
-      requestAnimationFrame(detectPitch);
+      requestAnimationFrame(detectPitchAndDuration);
+    }
+
+    // 時間（秒）から最適な音符タイプ（1, 2, 4, 8）を割り出す
+    function calculateNoteType(durationSec, beatSec) {
+      const beats = durationSec / beatSec;
+      if (beats >= 3.0) return 1; // 全音符
+      if (beats >= 1.5) return 2; // 二分音符
+      if (beats >= 0.75) return 4; // 四分音符
+      return 8; // 八分音符
     }
 
     function autoCorrelate(buf, sampleRate) {
       let SIZE = buf.length;
-      let rms = 0;
-      for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
-      rms = Math.sqrt(rms / SIZE);
-      if (rms < 0.03) return -1; // 音が小さすぎる場合は無視
-
-      let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+      let r1 = 0, r2 = SIZE - 1, thres = 0.1;
       for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break; }
       for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
 
@@ -515,11 +663,10 @@
           maxpos = i;
         }
       }
-      let T0 = maxpos;
-      return sampleRate / T0;
+      return maxpos !== -1 ? sampleRate / maxpos : -1;
     }
 
-    // --- メトロノーム ＆ 再生コントロール ---
+    // メトロノーム ＆ 再生
     const metroToggle = document.getElementById('metro-toggle');
     const bpmSlider = document.getElementById('bpm-slider');
     const bpmVal = document.getElementById('bpm-val');
@@ -539,11 +686,10 @@
       clearInterval(metroInterval);
       const intervalMs = (60 / parseInt(bpmSlider.value)) * 1000;
       metroInterval = setInterval(() => {
-        if (metroToggle.checked) playTone(800, 0.05); // カチッという音
+        if (metroToggle.checked) playTone(800, 0.05);
       }, intervalMs);
     }
 
-    // 楽譜の再生機能
     const btnPlay = document.getElementById('btn-play');
     const playCursor = document.getElementById('play-cursor');
 
@@ -561,18 +707,22 @@
         }
 
         const note = recordedNotes[i];
-        playTone(note.freq, 0.4);
+        const durationSec = getDurationFromType(note.type);
+
+        if (!note.isRest) {
+          playTone(note.freq, durationSec);
+        }
+
         playCursor.setAttribute('x1', note.x);
         playCursor.setAttribute('x2', note.x);
 
         i++;
-        setTimeout(playNext, 400);
+        setTimeout(playNext, durationSec * 1000);
       }
 
       playNext();
     });
 
-    // クリアボタン
     document.getElementById('btn-clear').addEventListener('click', () => {
       recordedNotes = [];
       currentX = 80;
